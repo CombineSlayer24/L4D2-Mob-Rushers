@@ -1,0 +1,14 @@
+"AddonInfo"
+{
+	addonSteamAppID		550
+    addontitle			"[VScript] Mob Rushers"
+    addonversion	    1.2
+    addontagline		""
+	addonauthor 		"Pyri"
+	addonauthorSteamID 	""
+
+	addonContent_Campaign		0
+
+	addonDescription "Once you leave your safety of your saferoom, it's already over. They infected already know you're there."
+	addonContent_Script 1
+}
