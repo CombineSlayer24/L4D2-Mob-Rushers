@@ -1,6 +1,9 @@
 # L4D2-Mob-Rushers
 You'll always be on your toes. Common Infected will spawn around Survivors and rush at them, breaking up their little breaks and rest.
 
+# Bugs
+- Common Infected can spawn in the view of Survivors.
+
 # Configureable Settings
 	SpawnCountMin_Easy 	= 1			// Minimum random amount of Common Infected to spawn
 	SpawnCountMax_Easy 	= 5			// Maximum random amount of Common Infected to spawn
