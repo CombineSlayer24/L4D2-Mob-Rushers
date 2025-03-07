@@ -119,32 +119,32 @@ function StartInfectedChaseThink()
 		return;
 	}
 
-    // Mini-Horde Chance with Cooldown
-    local isMiniHorde = false;
-    local availableSlots = maxSpawnLimit - countScriptedSpawn;
-    local currentTime = Time();
-    if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance && ( currentTime - ::lastMiniHordeTime >= MINIHORDE_COOLDOWN ) )
-    {
-        if ( Director.IsFinale() ) return;
+	// Mini-Horde Chance with Cooldown
+	local isMiniHorde = false;
+	local availableSlots = maxSpawnLimit - countScriptedSpawn;
+	local currentTime = Time();
+	if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance && ( currentTime - ::lastMiniHordeTime >= MINIHORDE_COOLDOWN ) )
+	{
+		if ( Director.IsFinale() ) return;
 
-        local potentialCount = RandomInt( 10, 15 );
-        if ( potentialCount >= 10 && potentialCount <= availableSlots )
-        {
-            isMiniHorde = true;	// We're a mini horde, so we can display our GI message
-            iCount = potentialCount;
-            ::lastMiniHordeTime = currentTime;
-            if ( ::Settings.DebugMode )
-                printl( "[Mob Rushers] Mini-horde triggered! Spawn count set to " + iCount );
-        }
-        else if ( ::Settings.DebugMode )
-        {
-            printl( "[Mob Rushers] Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
-        }
-    }
-    else if ( ::Settings.DebugMode && ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN ) )
-    {
-        printl( "[Mob Rushers] Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
-    }
+		local potentialCount = RandomInt( 10, 15 );
+		if ( potentialCount >= 10 && potentialCount <= availableSlots )
+		{
+			isMiniHorde = true;	// We're a mini horde, so we can display our GI message
+			iCount = potentialCount;
+			::lastMiniHordeTime = currentTime;
+			if ( ::Settings.DebugMode )
+				printl( "[Mob Rushers] Mini-horde triggered! Spawn count set to " + iCount );
+		}
+		else if ( ::Settings.DebugMode )
+		{
+			printl( "[Mob Rushers] Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
+		}
+	}
+	else if ( ::Settings.DebugMode && ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN ) )
+	{
+		printl( "[Mob Rushers] Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
+	}
 
 	// Spawn our Rushing infected
 	local isSameArea;
