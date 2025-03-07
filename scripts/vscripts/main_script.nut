@@ -14,6 +14,11 @@ const DIFF_NORMAL			= 1;
 const DIFF_HARD				= 2;
 const DIFF_IMPOSSIBLE		= 3;
 
+const MINIHORDE_COOLDOWN	= 30.0;
+
+::lastMiniHordeTime <- 0.0;
+
+
 foreach ( sound in ::WarnSound )
 {
 	if ( !IsSoundPrecached( sound ) )
@@ -87,7 +92,8 @@ function StartInfectedChaseThink()
 	if ( Director.GetGameMode() == "survival" )
 		spawnChance = 50; // 50% of normal chance
 
-	// Finale logic: Skip if in finale, not allowed, and no Tank
+	// Finale logic: Lower the iCount and spawnChance
+	// so we do not softlock the finale.
 	if ( Director.IsFinale() )
 	{
 		// Halve spawn count and reduce chance during finale
@@ -113,48 +119,32 @@ function StartInfectedChaseThink()
 		return;
 	}
 
-	// Mini-Horde Chance
-	local isMiniHorde = false;
-	local availableSlots = maxSpawnLimit - countScriptedSpawn;
-	if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance )
-	{
-		if ( Director.IsFinale() ) return; // Do not trigger on Finales
+    // Mini-Horde Chance with Cooldown
+    local isMiniHorde = false;
+    local availableSlots = maxSpawnLimit - countScriptedSpawn;
+    local currentTime = Time();
+    if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance && ( currentTime - ::lastMiniHordeTime >= MINIHORDE_COOLDOWN ) )
+    {
+        if ( Director.IsFinale() ) return;
 
-		//local potentialCount = iCount * RandomFloat( 2, 2.75 );
-		local potentialCount = RandomInt( 10, 15 );
-		if ( potentialCount >= 10 && potentialCount <= availableSlots )
-		{
-			isMiniHorde = true;
-			iCount = potentialCount;
-			if ( ::Settings.DebugMode )
-				printl( "[Mob Rushers] Mini-horde triggered! Spawn count doubled to " + iCount );
-		}
-		else if ( ::Settings.DebugMode )
-		{
-			printl( "[Mob Rushers] Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
-		}
-	}
-
-	// OLD OLD OLD OLD
-/* 	local isMiniHorde = RandomInt( 0, 100 ) < ::Settings.MiniHordeChance;
-	if ( isMiniHorde )
-	{
-		iCount = iCount * 2; // Double the spawn count for a mini-horde
-
-		// Play incoming horde sound when it's over 10
-		// Multiply based on icount setting value... BUT HOW?
-		if ( iCount > 10 )
-		{
-			DisplayInstructorHint( HintMinihordeAlert );
-			local randomIndex = RandomInt( 0, ::WarnSound.len() - 1 );
-			local randomSound = ::WarnSound[ randomIndex ];
-			EmitAmbientSoundOn( randomSound, 0.65, 0, 100, Entities.First() );
-		}
-
-		if ( ::Settings.DebugMode )
-			printl( "[Mob Rushers] Mini-horde triggered! Spawn count doubled to " + iCount );
-	}
- */
+        local potentialCount = RandomInt( 10, 15 );
+        if ( potentialCount >= 10 && potentialCount <= availableSlots )
+        {
+            isMiniHorde = true;	// We're a mini horde, so we can display our GI message
+            iCount = potentialCount;
+            ::lastMiniHordeTime = currentTime;
+            if ( ::Settings.DebugMode )
+                printl( "[Mob Rushers] Mini-horde triggered! Spawn count set to " + iCount );
+        }
+        else if ( ::Settings.DebugMode )
+        {
+            printl( "[Mob Rushers] Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
+        }
+    }
+    else if ( ::Settings.DebugMode && ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN ) )
+    {
+        printl( "[Mob Rushers] Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
+    }
 
 	// Spawn our Rushing infected
 	local isSameArea;
