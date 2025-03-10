@@ -28,16 +28,16 @@ foreach ( sound in ::WarnSound )
 function IsScriptAllowedForGameMode()
 {
 	local gameMode = Director.GetGameMode();
-	printl( "[Mob Rushers] Detected game mode: '" + gameMode + "'" );
+	printl( "Detected game mode: '" + gameMode + "'" );
 
 	// Check if gameMode is in the disabled list
 	if ( ::Settings.DisableOnGamemodes.find( gameMode ) != null )
 	{
-		printl( "[Mob Rushers] Running in " + gameMode + ", NOT RUNNING!" );
+		printl( "Running in " + gameMode + ", NOT RUNNING!" );
 		return true;
 	}
 
-	printl( "[Mob Rushers] Script running for game mode: " + gameMode );
+	printl( "Script running for game mode: " + gameMode );
 	return true;
 }
 
@@ -90,7 +90,7 @@ function StartInfectedChaseThink()
 
 	// For testing ONLY!!!!
 	if ( Director.GetGameMode() == "survival" )
-		spawnChance = 50; // 50% of normal chance
+		spawnChance = 60; // 60% of normal chance
 
 	// Finale logic: Lower the iCount and spawnChance
 	// so we do not softlock the finale.
@@ -101,21 +101,22 @@ function StartInfectedChaseThink()
 		//spawnChance = spawnChance * 0.65;
 		iCount = 1
 		spawnChance = 5;
-		if ( ::Settings.DebugMode )
-			printl( "[Mob Rushers] Finale active—spawn count halved to " + iCount + ", chance reduced to " + spawnChance + "%" );
+		DebugMsg( "Finale active—spawn count halved to " + iCount + ", chance reduced to " + spawnChance + "%" );
 	}
 
-	local roll = RandomInt( 0, 100 );
+	// Funny name, if RTD lands above our Chance, spawn it!
+	local rollTheDice = RandomInt( 0, 100 );
 
-	printl( "=====================================================");
-	printl( format( "Difficulty: %d, Spawn Count: %d, Chance: %d, Roll: %d", GetDifficulty(), iCount, spawnChance, roll ) );
+	printl( "=====================================================" );
+	printl( format( "Difficulty: %d, Spawn Count: %d, Chance: %d, rollTheDice: %d", GetDifficulty(), iCount, spawnChance, rollTheDice ) );
 	printl( format( "Scripted Spawned: %d, Total CI: %d", countScriptedSpawn, GetCICount() ) );
-	printl( "=====================================================");
+	printl( "=====================================================" );
 
-	if ( roll >= spawnChance || countScriptedSpawn >= maxSpawnLimit )
+	// Our rollTheDice chances for spawning happens here!
+	if ( rollTheDice >= spawnChance || countScriptedSpawn >= maxSpawnLimit )
 	{
-		if ( ::Settings.DebugMode && roll >= spawnChance )
-			printl( "[Mob Rushers] Spawn skipped: roll (" + roll + ") >= chance (" + spawnChance + ")" );
+		if ( rollTheDice >= spawnChance )
+			DebugMsg( "Spawn skipped: rollTheDice (" + rollTheDice + ") >= chance (" + spawnChance + ")" );
 		return;
 	}
 
@@ -133,98 +134,70 @@ function StartInfectedChaseThink()
 			isMiniHorde = true;	// We're a mini horde, so we can display our GI message
 			iCount = potentialCount;
 			::lastMiniHordeTime = currentTime;
-			if ( ::Settings.DebugMode )
-				printl( "[Mob Rushers] Mini-horde triggered! Spawn count set to " + iCount );
+			DebugMsg( "Mini-horde triggered! Spawn count set to " + iCount );
 		}
-		else if ( ::Settings.DebugMode )
+		else
 		{
-			printl( "[Mob Rushers] Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
+			DebugMsg( "Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
 		}
 	}
-	else if ( ::Settings.DebugMode && ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN ) )
+	else if ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN )
 	{
-		printl( "[Mob Rushers] Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
+		DebugMsg( "Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
 	}
 
 	// Spawn our Rushing infected
-	local isSameArea;
 	local spawnPos = null;
+	local lastSpawnPosTable = { pos = null };
 	local spawnedCount = 0;
-	local lastSpawnPos = spawnPos; // Cache last position for same-area spawns
+
 	for ( local i = 0; i < iCount && countScriptedSpawn < maxSpawnLimit; i++ )
 	{
-		if ( isMiniHorde )
-			isSameArea = true;
-		else
-			isSameArea = RandomInt( 0, 100 ) < 75;
+		local spawnSameArea = isMiniHorde || ( i > 0 && RandomInt( 0, 100 ) < 75 );
+		spawnPos = FindValidSpawnLocation( randSurvivor, spawnSameArea, lastSpawnPosTable );
 
-		// Determine spawn position
-		if ( i == 0 || !isSameArea )
+		if ( !spawnPos )
 		{
-			spawnPos = FindValidSpawnLocation( randSurvivor, !isSameArea );
-			if ( !spawnPos )
-			{
-				if ( ::Settings.DebugMode )
-					printl( "[Mob Rushers] Failed to find spawn location on attempt " + i );
-				if ( i == 0 ) return; // Critical failure on first try
-
-				break; // Fallback failed, stop spawning
-			}
-			lastSpawnPos = spawnPos;
-		}
-		else
-		{
-			spawnPos = lastSpawnPos; // Reuse position for same-area horde
+			DebugMsg( "Failed to find spawn location on attempt " + i );
+			if ( i == 0 ) return;
+			break;
 		}
 
-		/*
-			if AllowNearSpawning is enabled, we will try
-			to find a new position that is not close to survivors.
-			If disabled, don't try to refind an area.
-		*/
-/* 		if ( !::Settings.AllowNearSpawning )
-		{
-			local survivorPos = randSurvivor.GetOrigin();
-			local distance = ( spawnPos - survivorPos ).Length();
-			if ( distance < 500 )
-			{
-				if ( ::Settings.DebugMode )
-					printl( "[Mob Rushers] Spawn too close (" + distance + " units), retrying..." );
-
-				spawnPos = FindValidSpawnLocation( randSurvivor, !isSameArea );
-				if ( !spawnPos ) continue; // Skip this iteration if retry fails
-			}
-		}
- */
-		// Spawn the infected
 		local infEnt = SpawnEntityFromTable( "infected", { origin = spawnPos, targetname = "task_zombie_ci" } );
 		if ( infEnt && infEnt.IsValid() )
 		{
 			NetProps.SetPropInt( infEnt, "m_mobRush", 1 );
+			local gender = NetProps.GetPropInt( infEnt, "m_Gender" )
+			// Do not modify health on Uncommon Infected
+			if ( !gender == 11 || !gender == 12 || !gender == 13
+				|| !gender == 14
+				|| !gender == 15
+				|| !gender == 16
+				|| !gender == 17 )
+			{
+				NetProps.SetPropInt( infEnt, "m_iMaxHealth", 30 )
+				NetProps.SetPropInt( infEnt, "m_iHealth", 30 )
+			}
 			::spawnedInfected.append( infEnt );
 			spawnedCount++;
 			countScriptedSpawn++;
 
-			if ( ::Settings.DebugMode )
-				printl( "[Mob Rushers] Spawned infected at " + spawnPos );
+			DebugMsg( "Spawned infected at " + spawnPos );
 		}
 	}
 
-	// Play sound and hint if enough infected spawned
 	if ( isMiniHorde && spawnedCount > 10 )
 	{
 		DisplayInstructorHint( HintMinihordeAlert );
-		local randomIndex = RandomInt(0, ::WarnSound.len() - 1 );
+		local randomIndex = RandomInt( 0, ::WarnSound.len() - 1 );
 		local randomSound = ::WarnSound[ randomIndex ];
 		EmitAmbientSoundOn( randomSound, 0.75, 0, 100, Entities.First() );
 	}
 
-
-	// Post-spawn feedback
-	if ( spawnedCount > 0 && ::Settings.DebugMode )
+	if ( spawnedCount > 0 )
 	{
-		local INFALERTMSG = isSameArea ? "Same area spawn" : "New random location";
-		printl( "[Mob Rushers] " + INFALERTMSG + ": Spawned " + spawnedCount + " infected" );
+		local debugMsg = ( lastSpawnPosTable.pos && spawnPos == lastSpawnPosTable.pos + Vector( 0, 0, 10 ) ) ? "Same area spawn" : "New random location";
+		DebugMsg( "" + debugMsg + ": Spawned " + spawnedCount + " infected" );
 	}
 }
 
@@ -272,11 +245,8 @@ function UpdateSurvivorLists()
 				else // Bot survivors
 					::botSurvivors.append( player );
 
-	if ( ::Settings.DebugMode )
-	{
-		printl( "Updated human survivors count: " + ::humanSurvivors.len() );
-		printl( "Updated bot survivors count: " + ::botSurvivors.len() );
-	}
+	DebugMsg( "Updated human survivors count: " + ::humanSurvivors.len() );
+	DebugMsg( "Updated bot survivors count: " + ::botSurvivors.len() );
 }
 
 function GetRandomSurvivor()
@@ -287,47 +257,61 @@ function GetRandomSurvivor()
 	// Prioritize human survivors
 	if ( ::humanSurvivors.len() > 0 )
 	{
-		if ( ::Settings.DebugMode )
-			printl( "IS HUMAN PLAYER SURVIVOR" );
-
+		DebugMsg( "IS HUMAN PLAYER SURVIVOR" );
 		return ::humanSurvivors[ RandomInt( 0, ::humanSurvivors.len() - 1 ) ];
 	}
 	// Fall back to bot survivors if no humans are alive
 	else if ( ::botSurvivors.len() > 0 )
 	{
-		if ( ::Settings.DebugMode )
-			printl( "IS BOT PLAYER SURVIVOR" );
+		DebugMsg( "IS BOT PLAYER SURVIVOR" );
 		return ::botSurvivors[ RandomInt( 0, ::botSurvivors.len() - 1 ) ];
 	}
 	else
 	{
-		if ( ::Settings.DebugMode )
-			printl( "NO SURVIVOR FOUND!" );
+		DebugMsg( "NO SURVIVOR FOUND!" );
 		return null; // No alive survivors found
 	}
 }
 
-/* // OLD OLD OLD OLD
-function GetRandomSurvivor()
+// NEW NEW NEW NEW
+/* function GetRandomSurvivor()
 {
-	local survivors = [];
-	for ( local player; player = Entities.FindByClassname( player, "player" ); )
+	local survivors = { humans = [], bots = [] };
+	local ent = null;
+
+	// Collect all alive survivors
+	while ( ent = Entities.FindByClassname( ent, "player" ) )
 	{
-		if ( player.IsSurvivor() && !player.IsDead() )
+		if ( ent.IsValid() && ent.IsSurvivor() && !ent.IsDead() )
 		{
-			survivors.append( player );
+			if ( IsPlayerABot( ent ) )
+				survivors.bots.append( ent );
+			else
+				survivors.humans.append( ent );
 		}
 	}
 
-	if ( survivors.len() > 0 )
+	DebugMsg( "Found " + survivors.humans.len() + " human survivors, " + survivors.bots.len() + " bot survivors" );
+
+	// Prioritize human survivors
+	if ( survivors.humans.len() > 0 )
 	{
-		return survivors[ RandomInt( 0, survivors.len() - 1 ) ];
+		DebugMsg( "Selecting random human survivor" );
+		return survivors.humans[ RandomInt( 0, survivors.humans.len() - 1 ) ];
+	}
+	// Fall back to bot survivors
+	else if ( survivors.bots.len() > 0 )
+	{
+		DebugMsg( "Selecting random bot survivor" );
+		return survivors.bots[ RandomInt( 0, survivors.bots.len() - 1 ) ];
 	}
 	else
 	{
-		return null; // No Survivors found! This should NEVER Happen, unless all die, but regardless.
+		DebugMsg( "No survivors found!" );
+		return null;
 	}
 } */
+
 
 function IsPlayerABot( player )
 {
@@ -350,45 +334,174 @@ function CleanSpawnedInfectedList()
 	}
 }
 
-function FindValidSpawnLocation( survivorPos, randomNavArea = false )
+function FindValidSpawnLocation( survivor, spawnSameArea = false, lastSpawnPosTable = null )
 {
-	local SpawnRadius = RandomInt( ::Settings.SpawnDistMin, ::Settings.SpawnDistMax );
-	local SurvPos = survivorPos.GetOrigin();
-	local allNavAreas = {};
-
-	NavMesh.GetNavAreasInRadius( SurvPos, SpawnRadius, allNavAreas );
-
-	// Find nonvisble areas and areas that we should spawn in.
-	local nonVisibleAreas = [];
-	foreach ( navArea in allNavAreas )
+	if ( !survivor || !survivor.IsValid() )
 	{
-		if ( !navArea.HasSpawnAttributes( 65536 ) && !navArea.IsDamaging() && !navArea.IsBlocked( 3, false ) && !navArea.IsPotentiallyVisibleToTeam( 2 ) )
+		DebugMsg( "Invalid survivor for spawn location search" );
+		return null;
+	}
+
+	local playerPos = survivor.GetOrigin();
+	local maxDist = ::Settings.SpawnDistMax.tofloat();
+	local minDist = ::Settings.SpawnDistMin.tofloat();
+	local attempts = 50;
+
+	DebugMsg( "Finding spawn for survivor at " + playerPos + ", range: " + minDist + "–" + maxDist );
+
+	// Collect all alive survivors for visibility check
+	local survs = [];
+	local ent = null;
+	while ( ent = Entities.FindByClassname( ent, "player" ) )
+	{
+		if ( ent.IsValid() && ent.IsSurvivor() && !ent.IsDead() )
+			survs.append( ent );
+	}
+
+    if ( spawnSameArea && lastSpawnPosTable != null && "pos" in lastSpawnPosTable && lastSpawnPosTable.pos != null )
+    {
+        local dist = CalculateDistance( lastSpawnPosTable.pos, playerPos );
+        DebugMsg( "Reusing same area spawn at " + lastSpawnPosTable.pos + " (dist: " + dist + ")" );
+        return lastSpawnPosTable.pos + Vector( 0, 0, 10 );
+    }
+
+	for ( local i = 0; i < attempts; i++ )
+	{
+		local _pos = survivor.TryGetPathableLocationWithin( maxDist );
+		if ( !_pos )
 		{
-			nonVisibleAreas.push( navArea );
+			DebugMsg( "Attempt " + i + ": No pathable location found" );
+			continue;
+		}
+
+/* 		local dist = CalculateDistance( _pos, playerPos );
+		if ( dist > maxDist || dist < minDist )
+		{
+			DebugMsg( "Attempt " + i + ": Position " + _pos + " out of range (" + dist + ")" );
+			continue;
+		} */
+
+		local canSee = false;
+		foreach ( surv in survs )
+		{
+			if ( !surv.IsValid() || surv.IsDead() )
+				continue;
+
+			local survivorEyeAng = GetEyeAngles( surv );
+			if ( !survivorEyeAng )
+			{
+				DebugMsg( "Survivor " + surv + " has no eye angles" );
+				continue;
+			}
+
+			local posLeft = _pos + survivorEyeAng.Left().Scale( 64 );
+			local posRight = _pos + survivorEyeAng.Left().Scale( -64 );
+
+			local traceResults = [
+				CanTraceToLocation( surv, _pos ),
+				CanTraceToLocation( surv, _pos + Vector( 0, 0, 128 ) ),
+				CanTraceToLocation( surv, posLeft ),
+				CanTraceToLocation( surv, posRight )
+			];
+
+			if ( traceResults[ 0 ] || traceResults[ 1 ] || traceResults[ 2 ] || traceResults[ 3 ] )
+			{
+				canSee = true;
+				DebugMsg( "Attempt " + i + ": Survivor " + surv + " can see " + _pos + " (traces: " + traceResults + ")" );
+				break;
+			}
+
+/* 			local survDist = CalculateDistance( _pos, surv.GetOrigin() );
+			if ( survDist < minDist )
+			{
+				canSee = true;
+				DebugMsg( "Attempt " + i + ": Survivor " + surv + " too close to " + _pos + " (" + survDist + ")" );
+				break;
+			} */
+		}
+
+		if ( !canSee )
+		{
+			if ( lastSpawnPosTable != null )
+				lastSpawnPosTable.pos <- _pos;
+
+			DebugMsg( "Found valid spawn at " + _pos + " after " + ( i + 1 ) + " attempts" );
+			if ( ::Settings.DebugMode )
+				DebugDrawLine( playerPos, _pos, 0, 255, 0, true, 5.0 );
+			return _pos + Vector( 0, 0, 10 );
 		}
 	}
 
-	local result = null;
-	if ( nonVisibleAreas.len() > 0 )
+	DebugMsg( "No valid spawn location found after " + attempts + " attempts" );
+	return null;
+}
+
+function DebugMsg( text )
+{
+    if ( ::Settings.DebugMode )
+		printl( "[Mob Rushers] " + text );
+}
+
+// Credit to VSLib for these
+function GetEyeAngles( entity )
+{
+	if ( !entity || !entity.IsValid() )
 	{
-		local chosenArea = randomNavArea ? nonVisibleAreas[ RandomInt( 0, nonVisibleAreas.len() - 1 ) ] : nonVisibleAreas[ 0 ];
-		if ( ::Settings.DebugMode )
-		{
-			printl( "[Mob Rushers] Found hidden spawn location! Areas checked: " + allNavAreas.len() + ", Non-visible to survivors: " + nonVisibleAreas.len() );
-			chosenArea.DebugDrawFilled( 20, 175, 20, 128, 5.0, true );
-		}
-		local basePos = chosenArea.FindRandomSpot();
-		result = Vector( basePos.x, basePos.y, basePos.z + 10 );
-	}
-	else if ( ::Settings.DebugMode )
-	{
-		printl ( "[Mob Rushers] No hidden spawn location found. Total areas: " + allNavAreas.len() );
+		DebugMsg( "Warning: Invalid entity in GetEyeAngles" );
+		return null;
 	}
 
-	allNavAreas = {};
-	nonVisibleAreas = [];
-	return result;
+	if ( !("EyeAngles" in entity) )
+	{
+		DebugMsg( "Warning: Entity does not have EyeAngles method" );
+		return null;
+	}
 
+	return entity.EyeAngles();
+}
+
+function GetEyePosition( entity )
+{
+	if ( !entity || !entity.IsValid() )
+	{
+		DebugMsg( "Warning: Invalid entity in GetEyePosition" );
+		return null;
+	}
+
+	if ( !("EyePosition" in entity) )
+	{
+		DebugMsg( "Warning: Entity does not have EyePosition method, falling back to GetOrigin" );
+		return entity.GetOrigin();
+	}
+
+	return entity.EyePosition();
+}
+
+function CanTraceToLocation( player, finishPos, traceMask = 131083 )
+{
+	if ( !player || !player.IsValid() )
+		return false;
+
+	local begin = GetEyePosition( player );
+	if ( !begin )
+		return false; // Fallback if eye position can’t be determined
+
+	local m_trace = { start = begin, end = finishPos, ignore = player, mask = traceMask };
+	TraceLine( m_trace );
+
+	return AreVectorsEqual( m_trace.pos, finishPos );
+}
+
+function CalculateDistance( vec1, vec2 )
+{
+	if ( !vec1 || !vec2 )
+		return -1.0;
+	return ( vec2 - vec1 ).Length();
+}
+
+function AreVectorsEqual( vec1, vec2 )
+{
+	return vec1.x == vec2.x && vec1.y == vec2.y && vec1.z == vec2.z;
 }
 
 function CommandInfectedToAttackSurvivors( targetSurvivor )

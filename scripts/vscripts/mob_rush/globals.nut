@@ -45,19 +45,19 @@
 	// -------------
 	SpawnCountMin_Easy 	= 1			// Minimum random amount of Common Infected to spawn
 	SpawnCountMax_Easy 	= 5			// Maximum random amount of Common Infected to spawn
-	SpawnChance_Easy 	= 5			// How frequent should we try to spawn? Low numbers = higher chances. High numbers = lower chances
+	SpawnChance_Easy 	= 15		// How frequent should we try to spawn? Low numbers = higher chances. High numbers = lower chances
 	// -------------
 	SpawnCountMin_Norm 	= 2
 	SpawnCountMax_Norm 	= 6
-	SpawnChance_Norm 	= 10
+	SpawnChance_Norm 	= 25
 	// -------------
 	SpawnCountMin_Adv 	= 3
 	SpawnCountMax_Adv 	= 8
-	SpawnChance_Adv 	= 20
+	SpawnChance_Adv 	= 50
 	// -------------
 	SpawnCountMin_Exp 	= 4
 	SpawnCountMax_Exp 	= 8
-	SpawnChance_Exp     = 15
+	SpawnChance_Exp     = 30
 	SpawnDistMin 		= 1250		// Minimum distance to spawn around the survivors
 	SpawnDistMax 		= 2000		// MAximum distance to spawn around the survivors
 	// -------------
@@ -67,7 +67,6 @@
 	DisableOnGamemodes 	= [ "survival", "scavenge", "mutation15" ]	// Gamemodes that the script should NOT be active in.
 	MiniHordeChance     = 20, 		// % chance for a mini-horde
 	DebugMode 			= false 	// Show some debug information on the host (Unless you're tinkering or modding this, why would you need this???)
-	//AllowNearSpawning 	= true 		// if true, the script will not attempt to refind spawn positions that were too close to the survivors
 }
 
 function FormatValue(val) {
