@@ -20,7 +20,7 @@ Settings are stored in `left4dead2/ems/mob_rushers/config.cfg`.  If you do not s
 |--------------------------|---------------------|--------------------------------------------------------------------------------|
 | `SpawnCountMin_Easy`    | `1`                 | Min number of infected spawned on Easy difficulty                               |
 | `SpawnCountMax_Easy`    | `3`                 | Max number of infected spawned on Easy difficulty                               |
-| `SpawnChance_Easy`      | `10`                 | Spawn frequency on Easy (lower = more frequent, higher = less frequent)  [0/100]|
+| `SpawnChance_Easy`      | `10`                 | Spawn frequency on Easy (lower = less frequent, higher = more frequent)  [0/100]|
 | `SpawnCountMin_Norm`    | `2`                 | Min for Normal difficulty                                                       |
 | `SpawnCountMax_Norm`    | `5`                 | Max for Normal difficulty                                                       |
 | `SpawnChance_Norm`      | `15`                | Spawn frequency on Normal                                                       |
