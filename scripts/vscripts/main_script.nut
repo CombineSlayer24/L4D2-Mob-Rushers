@@ -3,21 +3,18 @@ Msg( "  Mob Rushers Initialized\n"    );
 Msg( "-----------------------------------\n" );
 
 // CONSTANTS
-const PREFIXMSG				= "<[[Mob Rushers]]>";
-const INFALERTMSG			= "The Infected has been alerted! Try to survive, good luck!";
-const GREEN_CLR 			= "\x03";
-const ORANGE_CLR 			= "\x04";
-const SPACER_MSG 			= " ";
+const MR_PREFIX				= "<[[Mob Rushers]]>";
+const MR_ALERTMSG			= "The Infected has been alerted! Try to survive, good luck!";
+const MR_GREEN_CLR 			= "\x03";
+const MR_ORANGE_CLR 		= "\x04";
+const MR_SPACER_MSG 		= " ";
 
 const DIFF_EASY				= 0;
 const DIFF_NORMAL			= 1;
 const DIFF_HARD				= 2;
 const DIFF_IMPOSSIBLE		= 3;
 
-const MINIHORDE_COOLDOWN	= 30.0;
-
-::lastMiniHordeTime <- 0.0;
-
+const MR_MINIHORDE_COOLDOWN	= 30.0;
 
 foreach ( sound in ::WarnSound )
 {
@@ -49,7 +46,7 @@ function StartInfectedChaseThink()
 	local maxSpawnLimit 		= ::Settings.MaxSpawnedCommonInf;
 	local countScriptedSpawn 	= ::spawnedInfected.len(); 				// Count our spawned infected.
 	local spawnChance 			= 0;									// Spawn chance for our rushing infected to spawn in.
-	local iCount 				= 0;									// Our inital Spawn Count amount.
+	local spawnCount 				= 0;									// Our inital Spawn Count amount.
 
 	if ( randSurvivor == null ) return;
 
@@ -68,48 +65,45 @@ function StartInfectedChaseThink()
 	switch ( GetDifficulty() )
 	{
 		case DIFF_EASY:
-			iCount = RandomInt( ::Settings.SpawnCountMin_Easy, ::Settings.SpawnCountMax_Easy );
+			spawnCount = RandomInt( ::Settings.SpawnCountMin_Easy, ::Settings.SpawnCountMax_Easy );
 			spawnChance = ::Settings.SpawnChance_Easy;
 		break;
 
 		case DIFF_NORMAL:
-			iCount = RandomInt( ::Settings.SpawnCountMin_Norm, ::Settings.SpawnCountMax_Norm );
+			spawnCount = RandomInt( ::Settings.SpawnCountMin_Norm, ::Settings.SpawnCountMax_Norm );
 			spawnChance = ::Settings.SpawnChance_Norm;
 		break;
 
 		case DIFF_HARD:
-			iCount = RandomInt( ::Settings.SpawnCountMin_Adv, ::Settings.SpawnCountMax_Adv );
+			spawnCount = RandomInt( ::Settings.SpawnCountMin_Adv, ::Settings.SpawnCountMax_Adv );
 			spawnChance = ::Settings.SpawnChance_Adv;
 		break;
 
 		case DIFF_IMPOSSIBLE:
-			iCount = RandomInt( ::Settings.SpawnCountMin_Exp, ::Settings.SpawnCountMax_Exp );
+			spawnCount = RandomInt( ::Settings.SpawnCountMin_Exp, ::Settings.SpawnCountMax_Exp );
 			spawnChance = ::Settings.SpawnChance_Exp;
 		break;
 	}
 
-	// For testing ONLY!!!!
 	if ( Director.GetGameMode() == "survival" )
 		spawnChance = 60; // 60% of normal chance
 
-	// Finale logic: Lower the iCount and spawnChance
+	// Finale logic: Lower the spawnCount and spawnChance
 	// so we do not softlock the finale.
 	if ( Director.IsFinale() )
 	{
 		// Halve spawn count and reduce chance during finale
-		//iCount = ceil( iCount * 0.65 );
-		//spawnChance = spawnChance * 0.65;
-		iCount = 1
-		spawnChance = 5;
-		DebugMsg( "Finale active—spawn count halved to " + iCount + ", chance reduced to " + spawnChance + "%" );
+		spawnCount = ceil( spawnCount * 0.65 );
+		spawnChance = spawnChance * 0.25;
+		DebugMsg( "Finale active—spawn count halved to " + spawnCount + ", chance reduced to " + spawnChance + "%" );
 	}
 
 	// Funny name, if RTD lands above our Chance, spawn it!
 	local rollTheDice = RandomInt( 0, 100 );
 
 	printl( "=====================================================" );
-	printl( format( "Difficulty: %d, Spawn Count: %d, Chance: %d, rollTheDice: %d", GetDifficulty(), iCount, spawnChance, rollTheDice ) );
-	printl( format( "Scripted Spawned: %d, Total CI: %d", countScriptedSpawn, GetCICount() ) );
+	printl( format( "Difficulty: %d, Spawn Count: %d, Chance: %d, rollTheDice: %d", GetDifficulty(), spawnCount, spawnChance, rollTheDice ) );
+	printl( format( "Scripted Spawned: %d, Total CI: %d", countScriptedSpawn, GetCspawnCount() ) );
 	printl( "=====================================================" );
 
 	// Our rollTheDice chances for spawning happens here!
@@ -124,34 +118,35 @@ function StartInfectedChaseThink()
 	local isMiniHorde = false;
 	local availableSlots = maxSpawnLimit - countScriptedSpawn;
 	local currentTime = Time();
-	if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance && ( currentTime - ::lastMiniHordeTime >= MINIHORDE_COOLDOWN ) )
+	if ( RandomInt( 0, 100 ) < ::Settings.MiniHordeChance && ( currentTime - ::lastMiniHordeTime >= MR_MINIHORDE_COOLDOWN ) )
 	{
 		if ( Director.IsFinale() ) return;
 
-		local potentialCount = RandomInt( 10, 15 );
-		if ( potentialCount >= 10 && potentialCount <= availableSlots )
+		local potentialNewCount = RandomInt( 10, 15 );
+		if ( potentialNewCount >= 10 && potentialNewCount <= availableSlots )
 		{
 			isMiniHorde = true;	// We're a mini horde, so we can display our GI message
-			iCount = potentialCount;
+			spawnCount = potentialNewCount;
 			::lastMiniHordeTime = currentTime;
-			DebugMsg( "Mini-horde triggered! Spawn count set to " + iCount );
+			DebugMsg( "Mini-horde triggered! Spawn count set to " + spawnCount );
 		}
 		else
 		{
-			DebugMsg( "Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialCount + ")" );
+			DebugMsg( "Mini-horde skipped: insufficient slots (" + availableSlots + ") or too small (" + potentialNewCount + ")" );
 		}
 	}
-	else if ( currentTime - ::lastMiniHordeTime < MINIHORDE_COOLDOWN )
+	else if ( currentTime - ::lastMiniHordeTime < MR_MINIHORDE_COOLDOWN )
 	{
-		DebugMsg( "Mini-horde on cooldown: " + format( "%.1f", MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
+		DebugMsg( "Mini-horde on cooldown: " + format( "%.1f", MR_MINIHORDE_COOLDOWN - ( currentTime - ::lastMiniHordeTime ) ) + " seconds remaining" );
 	}
 
 	// Spawn our Rushing infected
 	local spawnPos = null;
 	local lastSpawnPosTable = { pos = null };
 	local spawnedCount = 0;
+	local health = ::Settings.HealthForRushers;
 
-	for ( local i = 0; i < iCount && countScriptedSpawn < maxSpawnLimit; i++ )
+	for ( local i = 0; i < spawnCount && countScriptedSpawn < maxSpawnLimit; i++ )
 	{
 		local spawnSameArea = isMiniHorde || ( i > 0 && RandomInt( 0, 100 ) < 75 );
 		spawnPos = FindValidSpawnLocation( randSurvivor, spawnSameArea, lastSpawnPosTable );
@@ -175,8 +170,8 @@ function StartInfectedChaseThink()
 				|| !gender == 16
 				|| !gender == 17 )
 			{
-				NetProps.SetPropInt( infEnt, "m_iMaxHealth", 30 )
-				NetProps.SetPropInt( infEnt, "m_iHealth", 30 )
+				NetProps.SetPropInt( infEnt, "m_iMaxHealth", health )
+				NetProps.SetPropInt( infEnt, "m_iHealth", health )
 			}
 			::spawnedInfected.append( infEnt );
 			spawnedCount++;
@@ -201,7 +196,7 @@ function StartInfectedChaseThink()
 	}
 }
 
-function GetCICount()
+function GetCspawnCount()
 {
 	local infected = null;
 	local count = 0
@@ -273,46 +268,6 @@ function GetRandomSurvivor()
 	}
 }
 
-// NEW NEW NEW NEW
-/* function GetRandomSurvivor()
-{
-	local survivors = { humans = [], bots = [] };
-	local ent = null;
-
-	// Collect all alive survivors
-	while ( ent = Entities.FindByClassname( ent, "player" ) )
-	{
-		if ( ent.IsValid() && ent.IsSurvivor() && !ent.IsDead() )
-		{
-			if ( IsPlayerABot( ent ) )
-				survivors.bots.append( ent );
-			else
-				survivors.humans.append( ent );
-		}
-	}
-
-	DebugMsg( "Found " + survivors.humans.len() + " human survivors, " + survivors.bots.len() + " bot survivors" );
-
-	// Prioritize human survivors
-	if ( survivors.humans.len() > 0 )
-	{
-		DebugMsg( "Selecting random human survivor" );
-		return survivors.humans[ RandomInt( 0, survivors.humans.len() - 1 ) ];
-	}
-	// Fall back to bot survivors
-	else if ( survivors.bots.len() > 0 )
-	{
-		DebugMsg( "Selecting random bot survivor" );
-		return survivors.bots[ RandomInt( 0, survivors.bots.len() - 1 ) ];
-	}
-	else
-	{
-		DebugMsg( "No survivors found!" );
-		return null;
-	}
-} */
-
-
 function IsPlayerABot( player )
 {
 	return NetProps.GetPropInt( player, "m_humanSpectatorUserID" ) == -1;
@@ -358,12 +313,12 @@ function FindValidSpawnLocation( survivor, spawnSameArea = false, lastSpawnPosTa
 			survs.append( ent );
 	}
 
-    if ( spawnSameArea && lastSpawnPosTable != null && "pos" in lastSpawnPosTable && lastSpawnPosTable.pos != null )
-    {
-        local dist = CalculateDistance( lastSpawnPosTable.pos, playerPos );
-        DebugMsg( "Reusing same area spawn at " + lastSpawnPosTable.pos + " (dist: " + dist + ")" );
-        return lastSpawnPosTable.pos + Vector( 0, 0, 10 );
-    }
+	if ( spawnSameArea && lastSpawnPosTable != null && "pos" in lastSpawnPosTable && lastSpawnPosTable.pos != null )
+	{
+		local dist = CalculateDistance( lastSpawnPosTable.pos, playerPos );
+		DebugMsg( "Reusing same area spawn at " + lastSpawnPosTable.pos + " (dist: " + dist + ")" );
+		return lastSpawnPosTable.pos + Vector( 0, 0, 10 );
+	}
 
 	for ( local i = 0; i < attempts; i++ )
 	{
@@ -380,6 +335,32 @@ function FindValidSpawnLocation( survivor, spawnSameArea = false, lastSpawnPosTa
 			DebugMsg( "Attempt " + i + ": Position " + _pos + " out of range (" + dist + ")" );
 			continue;
 		} */
+
+		// Ground check: Trace downward to ensure solid surface
+		local groundTrace = { start = _pos + Vector( 0, 0, 20 ), end = _pos - Vector( 0, 0, 20 ), mask = 131083 }; // MASK_PLAYERSOLID
+		TraceLine( groundTrace );
+		if ( !groundTrace.hit )
+		{
+			DebugMsg( "Attempt " + i + ": No solid ground at " + _pos );
+			continue;
+		}
+		_pos = groundTrace.pos + Vector( 0, 0, 10 );
+
+		// Ensure no props or entities block the spawn area
+		local isClear = true;
+		local checkRadius = 32.0; // Rough width
+		for ( local prop; prop = Entities.FindInSphere( prop, _pos, checkRadius ); )
+		{
+			if ( prop.IsValid() && ( prop.GetClassname() == "prop_physics" || prop.GetClassname() == "prop_dynamic" || prop.GetClassname() == "func_breakable") )
+			{
+				isClear = false;
+				DebugMsg( "Attempt " + i + ": Spawn at " + _pos + " blocked by " + prop.GetClassname() );
+				break;
+			}
+		}
+
+		if ( !isClear )
+			continue;
 
 		local canSee = false;
 		foreach ( surv in survs )
@@ -438,7 +419,7 @@ function FindValidSpawnLocation( survivor, spawnSameArea = false, lastSpawnPosTa
 
 function DebugMsg( text )
 {
-    if ( ::Settings.DebugMode )
+	if ( ::Settings.DebugMode )
 		printl( "[Mob Rushers] " + text );
 }
 
@@ -451,7 +432,7 @@ function GetEyeAngles( entity )
 		return null;
 	}
 
-	if ( !("EyeAngles" in entity) )
+	if ( !( "EyeAngles" in entity ) )
 	{
 		DebugMsg( "Warning: Entity does not have EyeAngles method" );
 		return null;
@@ -468,7 +449,7 @@ function GetEyePosition( entity )
 		return null;
 	}
 
-	if ( !("EyePosition" in entity) )
+	if ( !( "EyePosition" in entity ) )
 	{
 		DebugMsg( "Warning: Entity does not have EyePosition method, falling back to GetOrigin" );
 		return entity.GetOrigin();
@@ -534,7 +515,7 @@ function OnGameEvent_player_left_safe_area( params )
 {
 	if ( IsScriptAllowedForGameMode() )
 	{
-		ClientPrint( null, 3, format( GREEN_CLR + PREFIXMSG + ORANGE_CLR + SPACER_MSG + INFALERTMSG ) );
+		ClientPrint( null, 3, format( MR_GREEN_CLR + MR_PREFIX + MR_ORANGE_CLR + MR_SPACER_MSG + MR_ALERTMSG ) );
 		local randomIndex = RandomInt( 0, ::WarnSound.len() - 1 );
 		local randomSound = ::WarnSound[ randomIndex ];
 		EmitAmbientSoundOn( randomSound, 1.0, 0, 100, Entities.First() );

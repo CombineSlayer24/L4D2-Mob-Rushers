@@ -2,6 +2,7 @@
 ::humanSurvivors 	<- [];	// Get all alive human survivors
 ::botSurvivors 		<- [];	// Get all alive bot survivors
 ::spawnedInfected 	<- []; 	// Get all alive spawned infected with script
+::lastMiniHordeTime <- 0.0;	// Last mini-horde called
 
 ::WarnSound 		<-
 [
@@ -39,30 +40,30 @@
 	/*
 		-- Possible TODO settings --
 		- SameAreaSpawnChance		// todo
-		- AllowFinaleTankAssistance	// Spawn alongside the Finale Tank
 	*/
 
 	// -------------
 	SpawnCountMin_Easy 	= 1			// Minimum random amount of Common Infected to spawn
-	SpawnCountMax_Easy 	= 5			// Maximum random amount of Common Infected to spawn
-	SpawnChance_Easy 	= 15		// How frequent should we try to spawn? Low numbers = higher chances. High numbers = lower chances
+	SpawnCountMax_Easy 	= 3			// Maximum random amount of Common Infected to spawn
+	SpawnChance_Easy 	= 10		// How frequent should we try to spawn? Low numbers = higher chances. High numbers = lower chances
 	// -------------
 	SpawnCountMin_Norm 	= 2
-	SpawnCountMax_Norm 	= 6
-	SpawnChance_Norm 	= 25
+	SpawnCountMax_Norm 	= 5
+	SpawnChance_Norm 	= 15
 	// -------------
 	SpawnCountMin_Adv 	= 3
-	SpawnCountMax_Adv 	= 8
-	SpawnChance_Adv 	= 50
+	SpawnCountMax_Adv 	= 6
+	SpawnChance_Adv 	= 25
 	// -------------
-	SpawnCountMin_Exp 	= 4
-	SpawnCountMax_Exp 	= 8
-	SpawnChance_Exp     = 30
+	SpawnCountMin_Exp 	= 1
+	SpawnCountMax_Exp 	= 4
+	SpawnChance_Exp     = 20
 	SpawnDistMin 		= 1250		// Minimum distance to spawn around the survivors
 	SpawnDistMax 		= 2000		// MAximum distance to spawn around the survivors
 	// -------------
 
 	MaxSpawnedCommonInf = 30		// Maximum allowed ScriptSapwn Infected allowed
+	HealthForRushers 	= 30		// Health for Rushing Common Infected
 	ShouldAllRush 		= false		// Should Wandering infected be allowed to rush?
 	DisableOnGamemodes 	= [ "survival", "scavenge", "mutation15" ]	// Gamemodes that the script should NOT be active in.
 	MiniHordeChance     = 20, 		// % chance for a mini-horde
@@ -106,11 +107,11 @@ function SetupConfigSettings()
 			"SpawnDistMin",
 			"SpawnDistMax",
 			"MaxSpawnedCommonInf",
+			"HealthForRushers",
 			"ShouldAllRush",
 			"DisableOnGamemodes",
 			"MiniHordeChance",
 			"DebugMode",
-			//"AllowNearSpawning"
 		];
 
 		local sData = "{\n";
