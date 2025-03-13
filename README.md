@@ -10,9 +10,6 @@ Mob Rushers is a VScript that will spawn Common Infected around the survivors, m
 - **Mini-Hordes**: A chance for larger groups to spawn together.
 - **Customizable**: Adjust spawn counts, distances, health, and more via a config file.
 
-# Bugs
-- Common Infected can spawn onto props, make sure we can check if the area is clear before spawning our infected.
-
 ## ⚙️ Configurable Settings
 Settings are stored in `left4dead2/ems/mob_rushers/config.cfg`.  If you do not see them, start a game, then you should see them. Edit them and restart the level to apply changes. Here are the defaults:
 
