@@ -95,7 +95,7 @@ function StartInfectedChaseThink()
 		// Halve spawn count and reduce chance during finale
 		spawnCount = ceil( spawnCount * 0.65 );
 		spawnChance = spawnChance * 0.25;
-		DebugMsg( "Finale active—spawn count halved to " + spawnCount + ", chance reduced to " + spawnChance + "%" );
+		DebugMsg( "Finale active: spawn count halved to " + spawnCount + ", chance reduced to " + spawnChance + "%" );
 	}
 
 	// Funny name, if RTD lands above our Chance, spawn it!
@@ -158,7 +158,7 @@ function StartInfectedChaseThink()
 			break;
 		}
 
-		local infEnt = SpawnEntityFromTable( "infected", { origin = spawnPos, targetname = "task_zombie_ci" } );
+		local infEnt = SpawnEntityFromTable( "infected", { origin = spawnPos, /*targetname = "task_zombie_ci"*/ } );
 		if ( infEnt && infEnt.IsValid() )
 		{
 			NetProps.SetPropInt( infEnt, "m_mobRush", 1 );
@@ -302,7 +302,7 @@ function FindValidSpawnLocation( survivor, spawnSameArea = false, lastSpawnPosTa
 	local minDist = ::Settings.SpawnDistMin.tofloat();
 	local attempts = 50;
 
-	DebugMsg( "Finding spawn for survivor at " + playerPos + ", range: " + minDist + "–" + maxDist );
+	DebugMsg( "Finding spawn for survivor at " + playerPos + ", range: " + minDist + "-" + maxDist );
 
 	// Collect all alive survivors for visibility check
 	local survs = [];
@@ -465,7 +465,7 @@ function CanTraceToLocation( player, finishPos, traceMask = 131083 )
 
 	local begin = GetEyePosition( player );
 	if ( !begin )
-		return false; // Fallback if eye position can’t be determined
+		return false; // Fallback if eye position can't be determined
 
 	local m_trace = { start = begin, end = finishPos, ignore = player, mask = traceMask };
 	TraceLine( m_trace );
