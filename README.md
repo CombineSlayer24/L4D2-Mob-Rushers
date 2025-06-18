@@ -10,6 +10,11 @@ Mob Rushers is a VScript that will spawn Common Infected around the survivors, m
 - **Mini-Hordes**: A chance for larger groups to spawn together.
 - **Customizable**: Adjust spawn counts, distances, health, and more via a config file.
 
+## 🛠️ Planned updates
+Ideas and planned updates.
+- Mini-Horde alert display Setting: Enable/Disable the director and sounds of a Mini-Horde to surprise the player.
+- Generalized difficulty settings: Make a pre-made config settings the player can pick from easily, ranging from easy, medium, hard, expert.
+
 ## ⚙️ Configurable Settings
 Settings are stored in `left4dead2/ems/mob_rushers/config.cfg`.  If you do not see them, start a game, then you should see them. Edit them and restart the level to apply changes. Here are the defaults:
 
